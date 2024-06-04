@@ -2,6 +2,7 @@
 // Created by franc on 04/06/2024.
 //
 
+#include <iostream>
 #include "DES.h"
 #include "utils.h"
 using namespace constants;
@@ -25,7 +26,7 @@ uint64_t feistel_function(uint64_t subkey, uint64_t bits){
 }
 
 
-uint64_t des_encrypt_56(uint64_t key56, uint64_t message){
+uint64_t desEncrypt(uint64_t key56, uint64_t message){
     // Initial permutation
     uint64_t ip = permute<BLOCK, BLOCK>(message, initialPerm);
 
@@ -64,4 +65,15 @@ uint64_t des_encrypt_56(uint64_t key56, uint64_t message){
     // Final permutation
     ip = permute<BLOCK, BLOCK>(message, finalPerm);
     return ip;
+}
+
+void sequentialCrack(const vector<uint64_t> &pwdToCrack, const vector<uint64_t> &pwdList, uint64_t key) {
+    for(const auto &toCrack : pwdToCrack){
+        auto enc = desEncrypt(key, toCrack);
+
+        for(const auto &toCheck : pwdList){
+            if (enc == desEncrypt(key, toCheck))
+                break;
+        }
+    }
 }
