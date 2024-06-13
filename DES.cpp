@@ -7,7 +7,7 @@
 #include "utils.h"
 using namespace constants;
 
-uint64_t feistel_function(uint64_t subkey, uint64_t bits){
+uint64_t feistelFunction(uint64_t subkey, uint64_t bits){
     // Expansion
     uint64_t exp = permute<HALF_BLOCK, ROUND_KEY>(bits, expansion);
     // Key mixing
@@ -24,7 +24,6 @@ uint64_t feistel_function(uint64_t subkey, uint64_t bits){
 
     return permute<HALF_BLOCK, HALF_BLOCK>(exp, permutation);;
 }
-
 
 uint64_t desEncrypt(uint64_t key56, uint64_t message){
     // Initial permutation
@@ -53,7 +52,7 @@ uint64_t desEncrypt(uint64_t key56, uint64_t message){
         roundKey = permute<56, ROUND_KEY>(roundKey, permutedChoice2);
 
 
-        uint64_t feistel = feistel_function(roundKey, rhs);
+        uint64_t feistel = feistelFunction(roundKey, rhs);
 
         auto old_lhs = lhs;
         lhs = rhs;
@@ -67,13 +66,3 @@ uint64_t desEncrypt(uint64_t key56, uint64_t message){
     return ip;
 }
 
-void sequentialCrack(const vector<uint64_t> &pwdToCrack, const vector<uint64_t> &pwdList, uint64_t key) {
-    for(const auto &toCrack : pwdToCrack){
-        auto enc = desEncrypt(key, toCrack);
-
-        for(const auto &toCheck : pwdList){
-            if (enc == desEncrypt(key, toCheck))
-                break;
-        }
-    }
-}
