@@ -8,16 +8,18 @@
 #include <string>
 #include <random>
 
+#define BLOCK 64
+#define HALF_BLOCK 32
+#define ROUND_KEY 48
+#define ROUNDS 16
+
 using namespace std;
 namespace constants
 {
 
     // All possible characters we can use generating passwords
 
-    static const int BLOCK = 64;
-    static const int HALF_BLOCK = 32;
-    static const int ROUND_KEY = 48;
-    static const int ROUNDS = 16;
+
 
     const char charSet[64] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
                               'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
