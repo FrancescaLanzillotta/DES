@@ -9,7 +9,7 @@
 #include <numeric>
 #include "utils.h"
 #include "DES.h"
-#include "c_DES.cuh"
+#include "d_DES.cuh"
 using namespace constants;
 using namespace std;
 using namespace chrono;
@@ -31,8 +31,8 @@ int main() {
     bool saveResults = false;
     int N = 1000000;
     int length = 8;
-    int nCrack = 10;
-    int nTests = 1;
+    int nCrack = 1000;
+    int nTests = 3;
 
     uint64_t key = toUint64_T("aof3Ecp7");
 
@@ -80,10 +80,10 @@ int main() {
             auto start = system_clock::now();
             for (int i = 0; i < nCrack; i++){
                 auto toCrack = desEncrypt(key, test[i]);
-                for (int j = 0; j < N; j++){
-                    if (toCrack == desEncrypt(key, pwdList[j]))
-                        break;
-                }
+//                for (int j = 0; j < N; j++){
+//                    if (toCrack == desEncrypt(key, pwdList[j]))
+//                        break;
+//                }
             }
             auto end = system_clock::now();
             auto seqElapsed = duration_cast<milliseconds>(end - start);
@@ -95,13 +95,32 @@ int main() {
 
 
         cout << "\n------------------ Parallel Experiment ------------------\n";
-        int blockSize = 256;
+        vector<int> blockSizes = {32, 64, 128, 256};
 
-        cout << "Block size: " << blockSize;
+        vector<double> pAvg = {};
+        for (auto &blockSize: blockSizes) {
+            printf("Block size: %d\n", blockSize);
+            vector<double> pTimes = {};
+            for (auto &test: tests) {
+                cout << "Test started" << endl;
+                int *found;
+                auto start = system_clock::now();
+                found = parallelCrack(pwdList, N, test, nCrack, key, blockSize);
+                auto end = system_clock::now();
+                auto seqElapsed = duration_cast<milliseconds>(end - start);
+                pTimes.push_back((double)seqElapsed.count());
+                cout << "Passwords cracked (" << pTimes.back() << " ms)" << endl;
+                for(int i = 0; i < nCrack; i++){
+                    if (found[i] == 0)
+                        printf("Error occurred");
+                }
+                free(found);
+            }
+            pAvg.push_back(accumulate(pTimes.begin(), pTimes.end(), 0.0) / (double)pTimes.size());
+            cout << "Average time per block size = " << blockSize << " (ms): " << pAvg.back() << endl;
 
-        for (auto &test: tests) {
-            parallelCrack(pwdList, N, test, nCrack, key, blockSize);
         }
+
 
 
         if (saveResults){
