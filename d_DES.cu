@@ -3,7 +3,7 @@
 //
 
 #include <iostream>
-#include "c_DES.cuh"
+#include "d_DES.cuh"
 
 // calls to cudaMemcpyToSymbol() have to reside in the same file where the constant data is defined.
 __constant__ int d_initialPerm[BLOCK];
@@ -25,7 +25,7 @@ __constant__ int d_permutedChoice2[ROUND_KEY];
 __constant__ int d_keyShiftArray[ROUNDS];
 
 __host__
-void parallelCrack(uint64_t *pwdList, int N, uint64_t *pwdToCrack, int nCrack, uint64_t key, int blockSize){
+int * parallelCrack(uint64_t *pwdList, int N, uint64_t *pwdToCrack, int nCrack, uint64_t key, int blockSize){
     cudaMemcpyToSymbol(d_initialPerm, initialPerm, sizeof(int) * BLOCK);
     cudaMemcpyToSymbol(d_finalPerm, finalPerm, sizeof(int) * BLOCK);
     cudaMemcpyToSymbol(d_expansion, expansion, sizeof(int) * ROUND_KEY);
@@ -51,14 +51,40 @@ void parallelCrack(uint64_t *pwdList, int N, uint64_t *pwdToCrack, int nCrack, u
     cudaMalloc((void **) &d_pwdToCrack, nCrack * sizeof(uint64_t));
     cudaMemcpy(d_pwdToCrack, pwdToCrack, nCrack * sizeof(uint64_t), cudaMemcpyHostToDevice);
 
-    kernelCrack<<<(N + blockSize - 1) / blockSize, blockSize>>>(d_pwdList, N, d_pwdToCrack, nCrack, key);
+    int *d_found;
+    cudaMalloc((void **) &d_found, nCrack * sizeof(int));
+
+    kernelCrack<<<(N + blockSize - 1) / blockSize, blockSize>>>(d_pwdList, N, d_pwdToCrack, nCrack, d_found, key);
+    auto err = cudaGetLastError();
+    if (err != cudaSuccess){
+        printf("\n### %s: %s ###\n", cudaGetErrorName(err), cudaGetErrorString(err));
+    }
+
+    int *found = new int[nCrack];
+    cudaMemcpy(found, d_found, nCrack * sizeof(int), cudaMemcpyDeviceToHost);
 
     // free the memory
     cudaFree(d_pwdList);
     cudaFree(d_pwdToCrack);
+    cudaFree(d_found);
+    return found;
 
 }
 
+__global__
+void kernelCrack(const uint64_t *pwdList, int nPwd, const uint64_t *pwdToCrack, int nCrack, int *foundBy, uint64_t key) {
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < nPwd){
+        uint64_t e = d_desEncrypt(key, pwdList[tid]);
+        for(int i = 0; i < nCrack; i++){
+            //uint64_t c = d_desEncrypt(key, pwdToCrack[i]);
+            if (e == d_desEncrypt(key, pwdToCrack[i])){
+                foundBy[i] = tid;
+                // printf("Thread-%d found password %d\n", tid, i);
+            }
+        }
+    }
+}
 
 __device__ __forceinline__
 uint64_t d_feistelFunction(const uint64_t subkey, const uint64_t bits){
@@ -77,7 +103,7 @@ uint64_t d_feistelFunction(const uint64_t subkey, const uint64_t bits){
         exp |= uint32_t(d_hS[8 - 1 - j][row * 16 + col]) << ((j) * 4);
     }
 
-    return d_permute<HALF_BLOCK, HALF_BLOCK>(exp, d_permutation);;
+    return d_permute<HALF_BLOCK, HALF_BLOCK>(exp, d_permutation);
 }
 
 
@@ -85,7 +111,6 @@ __device__ __forceinline__
 uint64_t d_desEncrypt(uint64_t key56, const uint64_t message){
     // Initial permutation
     uint64_t ip = d_permute<BLOCK, BLOCK>(message, d_initialPerm);
-
     // Split in two halves
     uint32_t lhs = (ip >> HALF_BLOCK),
             rhs = ip;
@@ -124,16 +149,3 @@ uint64_t d_desEncrypt(uint64_t key56, const uint64_t message){
     return res;
 }
 
-__global__
-void kernelCrack(const uint64_t *pwdList, int nPwd, const uint64_t *pwdToCrack, int nCrack, uint64_t key){
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (tid < nPwd){
-        uint64_t e = d_desEncrypt(key, pwdList[tid]);
-        for(int i = 0; i < nCrack; i++){
-            uint64_t c = d_desEncrypt(key, pwdToCrack[i]);
-            if (e == c){
-                printf("Thread-%d found password %d\n", tid, i);
-            }
-        }
-    }
-}
