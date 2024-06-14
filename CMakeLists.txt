@@ -6,8 +6,8 @@ set(CMAKE_CUDA_STANDARD 17)
 
 add_executable(DES main.cu
         utils.h
-        c_DES.cu
-        c_DES.cuh
+        d_DES.cu
+        d_DES.cuh
         DES.cpp
         DES.h
 )
@@ -15,5 +15,5 @@ add_executable(DES main.cu
 set_target_properties(DES PROPERTIES
         CUDA_SEPARABLE_COMPILATION OFF)
 
-
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --ptxas-options=-v")
 
