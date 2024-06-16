@@ -2,7 +2,6 @@
 // Created by franc on 04/06/2024.
 //
 
-#include <iostream>
 #include "DES.h"
 #include "utils.h"
 using namespace constants;
@@ -22,7 +21,7 @@ uint64_t feistelFunction(uint64_t subkey, uint64_t bits){
         exp |= uint32_t(hS[8 - 1 - j][row * 16 + col]) << ((j) * 4);
     }
 
-    return permute<HALF_BLOCK, HALF_BLOCK>(exp, permutation);;
+    return permute<HALF_BLOCK, HALF_BLOCK>(exp, permutation);
 }
 
 uint64_t desEncrypt(uint64_t key56, uint64_t message){
