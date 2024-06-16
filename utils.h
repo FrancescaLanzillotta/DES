@@ -171,4 +171,16 @@ static uint64_t toUint64_T(const string &s){
 
     return result;
 }
+template<typename T>
+static string toString(const vector<T>& v) {
+    string s = "[";
+    for(int i = 0; i < v.size(); i++){
+        s += to_string(v[i]);
+        if (i < v.size() - 1)
+            s += ", ";
+        else
+            s += "]";
+    }
+    return s;
+}
 #endif //DES_UTILS_H
