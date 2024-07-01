@@ -78,8 +78,7 @@ void kernelCrack(const uint64_t *pwdList, int nPwd, const uint64_t *pwdToCrack, 
     if (tid < nPwd){
         uint64_t e = d_desEncrypt(key, pwdList[tid]);
         for(int i = 0; i < nCrack; i++){
-            //uint64_t c = d_desEncrypt(key, pwdToCrack[i]);
-            if (!found[i] && e == d_desEncrypt(key, pwdToCrack[i])){
+            if (!found[i] && e == pwdToCrack[i]){
                 found[i] = true;
                 // printf("Thread-%d found password %d\n", tid, i);
             }
@@ -91,9 +90,10 @@ __device__
 uint64_t d_feistelFunction(const uint64_t subkey, const uint64_t bits){
     // Expansion
     uint64_t exp = d_permute<HALF_BLOCK, ROUND_KEY>(bits, d_expansion);
+
     // Key mixing
     uint64_t xored = subkey ^ exp;
-    //subkey = subkey ^ exp;
+
     // Substitution
     exp = 0;
     for(int j = 8-1; j >= 0; j--){
@@ -142,7 +142,7 @@ uint64_t d_desEncrypt(uint64_t key56, const uint64_t message){
 
     }
     uint64_t res = (uint64_t(rhs) << HALF_BLOCK) | lhs;
-    //message = (uint64_t(rhs) << HALF_BLOCK) | lhs;
+
     // Final permutation
     res = d_permute<BLOCK, BLOCK>(res, d_finalPerm);
 
