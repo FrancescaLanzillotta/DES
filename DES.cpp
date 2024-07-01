@@ -11,6 +11,7 @@ uint64_t feistelFunction(uint64_t subkey, uint64_t bits){
     uint64_t exp = permute<HALF_BLOCK, ROUND_KEY>(bits, expansion);
     // Key mixing
     subkey = subkey ^ exp;
+
     // Substitution
     exp = 0;
     for(int j = 8-1; j >= 0; j--)
