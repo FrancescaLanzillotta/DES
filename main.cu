@@ -28,14 +28,14 @@ int main() {
     string resultsPath = R"(C:\Users\franc\CLionProjects\DES\results\results-)" + ss.str() + ".txt"; // results files have a timestamp
 
     bool overwrite = false;
-    bool saveResults = false;
+    bool saveResults = true;
     int N = 1000000;
     int length = 8;
     vector<int> blockSizes = {32, 64, 128, 256};
-    int nCrack = 10;
+    int nCrack = 1000;
     int nTests = 10;
 
-    uint64_t key = toUint64_T("aof3Ecp7");
+    uint64_t key = toUint64_T("a2kvt8rz");
 
     if (filesystem::exists(wordsPath) && !overwrite) {
 
@@ -54,7 +54,6 @@ int main() {
 
         random_device rd;  // a seed source for the random number engine
         mt19937 gen(rd()); // mersenne_twister_engine seeded with rd()
-        //gen.seed(42);
         uniform_int_distribution<> distrib(0, N);
 
 
@@ -63,7 +62,7 @@ int main() {
         for(int idTest = 0; idTest < nTests; idTest++){
             auto test = new uint64_t[nCrack];
             for (int i = 0; i < nCrack; i++){
-                test[i] = pwdList[distrib(gen)];
+                test[i] = desEncrypt(key, pwdList[distrib(gen)]);
             }
             tests.push_back(test);
 
@@ -80,16 +79,17 @@ int main() {
 
 
         vector<double> sTimes = {};
-        for (auto &test: tests) {
+        for (auto &pwdToCrack: tests) {
             cout << "Test started " << endl;
             auto start = system_clock::now();
+
             for (int i = 0; i < nCrack; i++){
-                auto toCrack = desEncrypt(key, test[i]);
                 for (int j = 0; j < N; j++){
-                    if (toCrack == desEncrypt(key, pwdList[j]))
+                    if (pwdToCrack[i] == desEncrypt(key, pwdList[j]))
                         break;
                 }
             }
+
             auto end = system_clock::now();
             auto seqElapsed = duration_cast<milliseconds>(end - start);
             sTimes.push_back((double)seqElapsed.count());
